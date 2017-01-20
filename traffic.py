@@ -11,7 +11,7 @@ import cv2
 import colorsys
 import collections
 
-
+print ("[DEBUG] Imports")
 # ====================================================
 # ================== DEFINE CLASS ====================
 # ====================================================
@@ -185,12 +185,17 @@ def nothing(x):
 # ====================================================
 # ================== VIDEO SOURCE ====================
 # ====================================================
+print ("[DEBUG] Load video")
 
-srcTest = 'peopleCounter.avi'
+srcTest = '../videos/peopleCounter.mp4'
 srcWebcam = 0
 srcMain = '' # live source here
 cap = cv2.VideoCapture(srcTest)  # Open video file
+#cap = cv2.VideoCapture(srcWebcam)  # Open video file
+print ("[DEBUG] Video loaded")
+print (cap)
 
+cap.grab()
 
 # ====================================================
 # ================== PRE-CONFIG ======================
@@ -220,8 +225,8 @@ maxWidth = cap.get(3)
 maxHeight = cap.get(4)
 
 inCriterion = "<"
-boundaryPt1 = [0, midHeight-100]
-boundaryPt2 = [maxWidth, midHeight]
+boundaryPt1 = [0, midHeight-100]        # Setup activation line
+boundaryPt2 = [maxWidth, midHeight]     # 
 
 
 # ====================================================
@@ -252,6 +257,7 @@ detectedContours = []
 _ , pFrame = cap.read()
 
 while (cap.isOpened()):
+    print ("[DEBUG] Frame: %d" % frameCounter)
 
     # Check Passage Status
     status = cv2.getTrackbarPos(switch, 'config')
@@ -261,12 +267,16 @@ while (cap.isOpened()):
         allowPassage = False
 
     # RE-Initialize
-    frameInfo = np.zeros((400, 500, 3), np.uint8)
+    #print ("[DEBUG] Read Frame")#: %d" % frameCounter)
+
+    frameInfo = np.zeros((300, 200, 3), np.uint8)
     averageArea = averageSize()
     ret, frame = cap.read()  # read a frame
     frameForView = frame.copy()
 
     # Clean Frame
+    #print ("[DEBUG] Cleanup Frame: %d" % frameCounter)
+
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     fgmask = fgbg.apply(gray)
     blur = cv2.medianBlur(fgmask, 5)
@@ -282,6 +292,8 @@ while (cap.isOpened()):
 
     # Process Contours
     for c in contours:
+        #print ("[DEBUG] Contour: %r" % c)
+
         # Filter Contour By Size
         if len(humanSizeSample) < 100:
             if cv2.contourArea(c) < minArea or cv2.contourArea(c) > maxArea:
@@ -297,6 +309,8 @@ while (cap.isOpened()):
     # Process Detected People
     if len(detectedPeople) != 0:
         for people in detectedPeople:
+            #print ("[DEBUG] People: %r" % people)
+
 
             # Setup Meanshift/Camshift for Tracking
             track_window = (people.x, people.y, people.w, people.h)
@@ -312,6 +326,9 @@ while (cap.isOpened()):
             pts = cv2.boxPoints(ret)
             pts = np.int0(pts)
             img2 = cv2.polylines(frameForView, [pts], True, people.color, 2)
+            cv2.imshow("debug", img2)
+#            cv2.waitKey(0)
+            
             pos = sum(pts)/len(pts)
             isFound = False
             for dC in detectedContours:
@@ -389,10 +406,10 @@ while (cap.isOpened()):
 
         if allowPassage:
             cv2.line(frameForView, (long(boundaryPt1[0]), long(boundaryPt1[1])),
-                     (long(boundaryPt2[0]), long(boundaryPt2[1])), (0, 255, 0), 2)
+                     (long(boundaryPt2[0]), long(boundaryPt2[1])), (0, 255, 0), 2)  # green line
         else:
             cv2.line(frameForView, (long(boundaryPt1[0]), long(boundaryPt1[1])),
-                     (long(boundaryPt2[0]), long(boundaryPt2[1])), (0, 0, 255), 2)
+                     (long(boundaryPt2[0]), long(boundaryPt2[1])), (0, 0, 255), 2)  # red line
 
         # Draw Infos
         cv2.putText(frameInfo, textNoOfPeople, (30, 40), cv2.FONT_HERSHEY_SIMPLEX
@@ -410,8 +427,10 @@ while (cap.isOpened()):
                     , 1, (255, 255, 255), 1, cv2.LINE_AA)
 
         # Display
+        print "Display"
         cv2.imshow('FrameForView', frameForView)
-        # cv2.imshow('Frame', frame)
+        cv2.moveWindow('FrameForView', 0, 0)
+        #cv2.imshow('Frame', frame)  # unmarked frame of original video
         if passImage != None:
             cv2.imshow('Violators', passImage)
         cv2.imshow('config', frameInfo)
@@ -421,12 +440,15 @@ while (cap.isOpened()):
         break
 
     # Abort and exit with 'Q' or ESC
-    k = cv2.waitKey(30) & 0xff
-    if k == 27:
+    k = cv2.waitKey(3) & 0xFF    # append & 0xff if 64bit 
+    if k == 27:# or k == 113 : # add code for Q or q
+    #if cv2.waitKey(3) & 0xFF == (ord('q') or 27):
+        print "breaking"
         break
-    # else:
-    #     cv2.imwrite(chr(k) + ".jpg", frame)
-
+    else:
+#        cv2.imwrite(chr(k) + ".jpg", frame) # take snapshot using letters as hotkeys
+        continue
+print "exitting"
 cap.release()
 cv2.destroyAllWindows()
 
